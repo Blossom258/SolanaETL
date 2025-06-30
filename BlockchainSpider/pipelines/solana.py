@@ -4,11 +4,8 @@ import csv
 from collections import OrderedDict
 from BlockchainSpider.items.solana import SignatureItem, TransactionsItem, AccountInfoItem, SolanaLogItem, \
     SolanaBalanceChangesItem, SolanaInstructionItem, SystemItem, SPLMemoItem, ValidateVotingItem, SPLTokenActionItem,\
-    InnerInstructionItem,AddressItem,TokenAccountItem
+    InnerInstructionItem,AddressItem,TokenAccountItem,BlockItem,SOLBalanceChangeItem,TokenBalanceChangeItem
 
-import os
-import csv
-from collections import OrderedDict
 
 
 class BasePipeline1:
@@ -116,7 +113,7 @@ class BalanceChangePipeline(BasePipeline):
         self.item_class = SolanaBalanceChangesItem  # 子类指定 item 类型
 
 
-class InstructionPipeline(BasePipeline):
+class SolanaInstructionPipeline(BasePipeline):
     def __init__(self):
         super().__init__()
         self.filename = "Instruction.csv"  # 子类指定文件名
@@ -179,3 +176,102 @@ class TokenAccountPipeline(BasePipeline):
         super().__init__()
         self.filename = "TokenAccount.csv"  # 子类指定文件名
         self.item_class = TokenAccountItem  # 子类指定 item 类型
+
+class BlockPipeline(BasePipeline):
+    def __init__(self):
+        super().__init__()
+        self.filename = "Block.csv"  # 子类指定文件名
+        self.item_class = BlockItem  # 子类指定 item 类型
+
+
+class BlocktoSignaturePipeline:
+    def __init__(self):
+        self.file = None
+
+    def process_item(self, item, spider):
+        if spider.out_dir is None:
+            return item
+        if not isinstance(item, BlockItem):
+            return item
+
+        # init file from filename
+        if self.file is None:
+            fn = os.path.join(spider.out_dir, spider.name)
+            if not os.path.exists(spider.out_dir):
+                os.makedirs(spider.out_dir)
+            self.file = open(fn, 'a')
+
+        # write item
+        json.dump({**item}, self.file)
+        self.file.write('\n')
+        return item
+
+    def close_spider(self, spider):
+        if self.file is not None:
+            self.file.close()
+
+# class SOLBalanceChangePipeline:
+#     def __init__(self):
+#         self.file = None
+#         self.filename =  'solana.SOLBalanceChange'
+#     def process_item(self, item, spider):
+#         if spider.out_dir is None:
+#             return item
+#         if not isinstance(item, SOLBalanceChangeItem):
+#             return item
+#
+#         # init file from filename
+#         if self.file is None:
+#             fn = os.path.join(spider.out_dir, self.filename)
+#             if not os.path.exists(spider.out_dir):
+#                 os.makedirs(spider.out_dir)
+#             self.file = open(fn, 'a')
+#
+#         # write item
+#         json.dump({**item}, self.file)
+#         self.file.write('\n')
+#         return item
+#
+#     def close_spider(self, spider):
+#         if self.file is not None:
+#             self.file.close()
+#
+# class TokenBalanceChangePipeline:
+#     def __init__(self):
+#         self.file = None
+#         self.filename = 'solana.TokenBalanceChange'
+#
+#     def process_item(self, item, spider):
+#         if spider.out_dir is None:
+#             return item
+#         if not isinstance(item, TokenBalanceChangeItem):
+#             return item
+#
+#         # init file from filename
+#         if self.file is None:
+#             fn = os.path.join(spider.out_dir, self.filename)
+#             if not os.path.exists(spider.out_dir):
+#                 os.makedirs(spider.out_dir)
+#             self.file = open(fn, 'a')
+#
+#         # write item
+#         json.dump({**item}, self.file)
+#         self.file.write('\n')
+#         return item
+#
+#     def close_spider(self, spider):
+#         if self.file is not None:
+#             self.file.close()
+
+class SOLBalanceChangePipeline(BasePipeline):
+    def __init__(self):
+        super().__init__()
+        self.filename = "SOLBalanceChange.csv"  # 子类指定文件名
+        self.item_class = SOLBalanceChangeItem  # 子类指定 item 类型
+
+class TokenBalanceChangePipeline(BasePipeline):
+    def __init__(self):
+        super().__init__()
+        self.filename = "TokenBalanceChange.csv"  # 子类指定文件名
+        self.item_class = TokenBalanceChangeItem  # 子类指定 item 类型
+
