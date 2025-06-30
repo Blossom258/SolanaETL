@@ -1,277 +1,168 @@
-import json
-import os
-import csv
-from collections import OrderedDict
-from BlockchainSpider.items.solana import SignatureItem, TransactionsItem, AccountInfoItem, SolanaLogItem, \
-    SolanaBalanceChangesItem, SolanaInstructionItem, SystemItem, SPLMemoItem, ValidateVotingItem, SPLTokenActionItem,\
-    InnerInstructionItem,AddressItem,TokenAccountItem,BlockItem,SOLBalanceChangeItem,TokenBalanceChangeItem
+import scrapy
+
+from BlockchainSpider.items.defs import ContextualItem
+
+
+class SolanaBlockItem(ContextualItem):
+    block_hash = scrapy.Field()  # str
+    block_height = scrapy.Field()  # int
+    block_time = scrapy.Field()  # int
+    parent_slot = scrapy.Field()  # str
+    previous_blockhash = scrapy.Field()  # str
+
+
+class SolanaTransactionItem(ContextualItem):
+    signature = scrapy.Field()  # str
+    signer = scrapy.Field()  # str
+    block_time = scrapy.Field()  # int
+    block_height = scrapy.Field()  # int
+    version = scrapy.Field()  # Union[int, str]
+    fee = scrapy.Field()  # int
+    compute_consumed = scrapy.Field()  # int
+    err = scrapy.Field()  # str
+    recent_blockhash = scrapy.Field()  # str
+
+
+class SolanaBalanceChangesItem(ContextualItem):
+    signature = scrapy.Field()  # str
+    account = scrapy.Field()  # str
+    mint = scrapy.Field()  # str
+    owner = scrapy.Field()  # str
+    program_id = scrapy.Field()  # str
+    pre_amount = scrapy.Field()  # str
+    post_amount = scrapy.Field()  # str
+    decimals = scrapy.Field()  # int
+
+
+class SolanaLogItem(ContextualItem):
+    signature = scrapy.Field()  # str
+    index = scrapy.Field()  # str
+    log = scrapy.Field()  # str
+
+
+# class SolanaInstructionItem(ContextualItem):
+#     signature = scrapy.Field()  # str
+#     trace_id = scrapy.Field()  # str
+#     data = scrapy.Field()  # Union[None, str], None if parsed
+#     program_id = scrapy.Field()  # str
+#     accounts = scrapy.Field()  # [str]
+
+
+# SPL definition, please see:
+# https://github.com/solana-labs/solana-program-library/blob/master/token/program/src/instruction.rs
+class SPLTokenActionItem(ContextualItem):
+    dtype = scrapy.Field()  # str
+    info = scrapy.Field()  # dict
+    program = scrapy.Field()  # str
+
+
+class SPLMemoItem(ContextualItem):
+    memo = scrapy.Field()  # str
+    program = scrapy.Field()  # str
+
+
+class ValidateVotingItem(ContextualItem):
+    dtype = scrapy.Field()  # str
+    info = scrapy.Field()  # dict
+    program = scrapy.Field()  # str
+
+
+class SystemItem(ContextualItem):
+    dtype = scrapy.Field()  # str
+    info = scrapy.Field()  # dict
+    program = scrapy.Field()  # str
 
 
 
-class BasePipeline1:
-    def __init__(self):
-        self.file = None
-        self.csv_writer = None
-        self.headers_written = False  # 标记是否已经写入了表头
+class SignatureItem(scrapy.Item):
+    address = scrapy.Field()  # [str]
+    signature = scrapy.Field()  # [str]
 
-    def open_spider(self, spider):
-        # 在爬虫启动时生成唯一的文件名，确保不会重复生成序号
-        id = getattr(spider, 'id', 'default')  # 从 spider 中获取唯一的 id，默认为 'default'
-        self.filename = f"{id}_{self.filename}"  # 设置文件名，生成文件一次
-    def process_item(self, item, spider):
-        # 设置输出路径并检查目录
-
-        # 检查 item 类型是否符合预期
-        if not isinstance(item, self.item_class):
-            return item
-
-        # 初始化 CSV 文件
-        if self.file is None:
-            fn = os.path.join(spider.out_dir, self.filename)  # 使用子类提供的文件名
-            if not os.path.exists(spider.out_dir):
-                os.makedirs(spider.out_dir)
-            self.file = open(fn, 'w', newline='', encoding='utf-8')
-            self.csv_writer = csv.writer(self.file)
-
-        # 获取字段名（表头）
-        item_dict = OrderedDict(item)  # 以确定字段顺序
-        if not self.headers_written:
-            self.csv_writer.writerow(item_dict.keys())  # 写入表头
-            self.headers_written = True
-
-        # 写入 item 数据
-        self.csv_writer.writerow(item_dict.values())
-
-        return item
+class TransactionsItem(scrapy.Item):
+    signature = scrapy.Field()  # str
+    slot = scrapy.Field()  # int
+    blocktime = scrapy.Field()  # int
+    version = scrapy.Field()  # Union[int, str]
+    fee = scrapy.Field()  # int
+    compute_consumed = scrapy.Field()  # int
+    #err = scrapy.Field()  # str
+    recent_blockhash = scrapy.Field()  # str
 
 
-    def close_spider(self, spider):
-        # 关闭文件
-        if self.file:
-            self.file.close()
-
-class BasePipeline:
-    def __init__(self):
-        self.file = None
-        self.csv_writer = None
-        self.headers_written = False  # 标记是否已经写入了表头
-
-    def process_item(self, item, spider):
-        # 如果没有指定输出目录，直接返回 item
-        if spider.out_dir is None:
-            return item
-
-        # 检查 item 类型是否符合预期
-        if not isinstance(item, self.item_class):
-            return item
-
-        # 初始化 CSV 文件
-        if self.file is None:
-            fn = os.path.join(spider.out_dir, self.filename)  # 使用子类提供的文件名
-            if not os.path.exists(spider.out_dir):
-                os.makedirs(spider.out_dir)
-            self.file = open(fn, 'w', newline='', encoding='utf-8')
-            self.csv_writer = csv.writer(self.file)
-
-        # 获取字段名（表头）
-        item_dict = OrderedDict(item)  # 以确定字段顺序
-        if not self.headers_written:
-            self.csv_writer.writerow(item_dict.keys())  # 写入表头
-            self.headers_written = True
-
-        # 写入 item 数据
-        self.csv_writer.writerow(item_dict.values())
-
-        return item
+class AccountInfoItem(scrapy.Item):
+    address = scrapy.Field()  # str
+    slot = scrapy.Field()  # int
+    data = scrapy.Field()  # str
+    executable = scrapy.Field()  # bool
+    lamports = scrapy.Field()  # int
+    decimals = scrapy.Field()  # int
+    freezeAuthority = scrapy.Field()  # str
+    isInitialized = scrapy.Field()  # bool
+    mintAuthority = scrapy.Field()  # str
+    supply = scrapy.Field()  # int
+    type = scrapy.Field()  # str
+    program = scrapy.Field()  # str
+    owner = scrapy.Field()  # str
+    rentEpoch = scrapy.Field()  # str
+    space = scrapy.Field()  # int
 
 
-class SignaturePipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "signature.csv"  # 子类指定文件名
-        self.item_class = SignatureItem  # 子类指定 item 类型
+class InnerInstructionItem(scrapy.Item):
+    signature = scrapy.Field()  # str
+    data = scrapy.Field()  # str
+
+class AddressItem(scrapy.Item):
+    address = scrapy.Field()  # str
+    signature = scrapy.Field()  # str
+    block = scrapy.Field()  # int
+
+class TokenAccountItem(scrapy.Item):
+    mint = scrapy.Field()  # str
+    owner= scrapy.Field()  # str
+    amount = scrapy.Field()  # int
+    decimals = scrapy.Field()  # int
+    uiamount = scrapy.Field()  # float
+    pubkey= scrapy.Field()  # str
+    count = scrapy.Field()  # int
+    type = scrapy.Field()  # union[NFT/Token]
 
 
-class AccountInfoPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "AccountInfo.csv"  # 子类指定文件名
-        self.item_class = AccountInfoItem  # 子类指定 item 类型
+class BlockItem(scrapy.Item):
+    slot = scrapy.Field()  # int
+    block_hash = scrapy.Field()  # str
+    block_height = scrapy.Field()  # int
+    block_time = scrapy.Field()  # int
+    parent_slot = scrapy.Field()  # str
+    previous_blockhash = scrapy.Field()  # str
+    signature = scrapy.Field()  # str
+
+class SOLBalanceChangeItem(scrapy.Item):
+    Address = scrapy.Field()  # str
+    Balance_Before = scrapy.Field()  # int
+    Balance_After = scrapy.Field()  # int
+    Change = scrapy.Field()  # int
+    signature = scrapy.Field()  # str
+
+class TokenBalanceChangeItem(scrapy.Item):
+    Address = scrapy.Field()  # str
+    Owner = scrapy.Field()  # str
+    Balance_Before = scrapy.Field()  # int
+    Balance_After = scrapy.Field()  # int
+    Change = scrapy.Field()  # int
+    Token = scrapy.Field()  # str
+    signature = scrapy.Field()  # str
 
 
-class LogPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "Log.csv"  # 子类指定文件名
-        self.item_class = SolanaLogItem  # 子类指定 item 类型
 
+class SolanaInstructionItem(scrapy.Item):
+    trace_id = scrapy.Field()  # str
+    data =  scrapy.Field()  # str
+    type =  scrapy.Field()  # str
+    info = scrapy.Field()  # str
+    program =  scrapy.Field()  # str
+    program_id =  scrapy.Field()  # str
+    accounts =  scrapy.Field()  # [str]
+    signature =  scrapy.Field()  # str
 
-class BalanceChangePipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "BalanceChanges.csv"  # 子类指定文件名
-        self.item_class = SolanaBalanceChangesItem  # 子类指定 item 类型
-
-
-class SolanaInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "Instruction.csv"  # 子类指定文件名
-        self.item_class = SolanaInstructionItem  # 子类指定 item 类型
-
-
-class SystemInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "SystemInstruction.csv"  # 子类指定文件名
-        self.item_class = SystemItem  # 子类指定 item 类型
-
-
-class SPLMemoInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "SPLMemoInstruction.csv"  # 子类指定文件名
-        self.item_class = SPLMemoItem  # 子类指定 item 类型
-
-
-class ValidateVotingInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "ValidateVotingInstruction.csv"  # 子类指定文件名
-        self.item_class = ValidateVotingItem  # 子类指定 item 类型
-
-
-class SPLTokenInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "SPLTokenInstruction.csv"  # 子类指定文件名
-        self.item_class = SPLTokenActionItem  # 子类指定 item 类型
-
-class SPLTokenInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "SPLTokenInstruction.csv"  # 子类指定文件名
-        self.item_class = SPLTokenActionItem  # 子类指定 item 类型
-
-class InnerInstructionPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "InnerInstruction.csv"  # 子类指定文件名
-        self.item_class = InnerInstructionItem  # 子类指定 item 类型
-
-class RandomAddressesPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "RandomAddresses.csv"  # 子类指定文件名
-        self.item_class = AddressItem  # 子类指定 item 类型
-
-class TransactionsPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "Transactions.csv"  # 子类指定文件名
-        self.item_class = TransactionsItem  # 子类指定 item 类型
-
-class TokenAccountPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "TokenAccount.csv"  # 子类指定文件名
-        self.item_class = TokenAccountItem  # 子类指定 item 类型
-
-class BlockPipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "Block.csv"  # 子类指定文件名
-        self.item_class = BlockItem  # 子类指定 item 类型
-
-
-class BlocktoSignaturePipeline:
-    def __init__(self):
-        self.file = None
-
-    def process_item(self, item, spider):
-        if spider.out_dir is None:
-            return item
-        if not isinstance(item, BlockItem):
-            return item
-
-        # init file from filename
-        if self.file is None:
-            fn = os.path.join(spider.out_dir, spider.name)
-            if not os.path.exists(spider.out_dir):
-                os.makedirs(spider.out_dir)
-            self.file = open(fn, 'a')
-
-        # write item
-        json.dump({**item}, self.file)
-        self.file.write('\n')
-        return item
-
-    def close_spider(self, spider):
-        if self.file is not None:
-            self.file.close()
-
-# class SOLBalanceChangePipeline:
-#     def __init__(self):
-#         self.file = None
-#         self.filename =  'solana.SOLBalanceChange'
-#     def process_item(self, item, spider):
-#         if spider.out_dir is None:
-#             return item
-#         if not isinstance(item, SOLBalanceChangeItem):
-#             return item
-#
-#         # init file from filename
-#         if self.file is None:
-#             fn = os.path.join(spider.out_dir, self.filename)
-#             if not os.path.exists(spider.out_dir):
-#                 os.makedirs(spider.out_dir)
-#             self.file = open(fn, 'a')
-#
-#         # write item
-#         json.dump({**item}, self.file)
-#         self.file.write('\n')
-#         return item
-#
-#     def close_spider(self, spider):
-#         if self.file is not None:
-#             self.file.close()
-#
-# class TokenBalanceChangePipeline:
-#     def __init__(self):
-#         self.file = None
-#         self.filename = 'solana.TokenBalanceChange'
-#
-#     def process_item(self, item, spider):
-#         if spider.out_dir is None:
-#             return item
-#         if not isinstance(item, TokenBalanceChangeItem):
-#             return item
-#
-#         # init file from filename
-#         if self.file is None:
-#             fn = os.path.join(spider.out_dir, self.filename)
-#             if not os.path.exists(spider.out_dir):
-#                 os.makedirs(spider.out_dir)
-#             self.file = open(fn, 'a')
-#
-#         # write item
-#         json.dump({**item}, self.file)
-#         self.file.write('\n')
-#         return item
-#
-#     def close_spider(self, spider):
-#         if self.file is not None:
-#             self.file.close()
-
-class SOLBalanceChangePipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "SOLBalanceChange.csv"  # 子类指定文件名
-        self.item_class = SOLBalanceChangeItem  # 子类指定 item 类型
-
-class TokenBalanceChangePipeline(BasePipeline):
-    def __init__(self):
-        super().__init__()
-        self.filename = "TokenBalanceChange.csv"  # 子类指定文件名
-        self.item_class = TokenBalanceChangeItem  # 子类指定 item 类型
-
+class solTransactionItem(scrapy.Item):
+    solTransaction =  scrapy.Field()  # list
