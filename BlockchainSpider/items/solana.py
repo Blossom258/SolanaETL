@@ -40,34 +40,34 @@ class SolanaLogItem(ContextualItem):
     log = scrapy.Field()  # str
 
 
-class SolanaInstructionItem(ContextualItem):
-    signature = scrapy.Field()  # str
-    trace_id = scrapy.Field()  # str
-    data = scrapy.Field()  # Union[None, str], None if parsed
-    program_id = scrapy.Field()  # str
-    accounts = scrapy.Field()  # [str]
+# class SolanaInstructionItem(ContextualItem):
+#     signature = scrapy.Field()  # str
+#     trace_id = scrapy.Field()  # str
+#     data = scrapy.Field()  # Union[None, str], None if parsed
+#     program_id = scrapy.Field()  # str
+#     accounts = scrapy.Field()  # [str]
 
 
 # SPL definition, please see:
 # https://github.com/solana-labs/solana-program-library/blob/master/token/program/src/instruction.rs
-class SPLTokenActionItem(SolanaInstructionItem):
+class SPLTokenActionItem(ContextualItem):
     dtype = scrapy.Field()  # str
     info = scrapy.Field()  # dict
     program = scrapy.Field()  # str
 
 
-class SPLMemoItem(SolanaInstructionItem):
+class SPLMemoItem(ContextualItem):
     memo = scrapy.Field()  # str
     program = scrapy.Field()  # str
 
 
-class ValidateVotingItem(SolanaInstructionItem):
+class ValidateVotingItem(ContextualItem):
     dtype = scrapy.Field()  # str
     info = scrapy.Field()  # dict
     program = scrapy.Field()  # str
 
 
-class SystemItem(SolanaInstructionItem):
+class SystemItem(ContextualItem):
     dtype = scrapy.Field()  # str
     info = scrapy.Field()  # dict
     program = scrapy.Field()  # str
@@ -85,7 +85,7 @@ class TransactionsItem(scrapy.Item):
     version = scrapy.Field()  # Union[int, str]
     fee = scrapy.Field()  # int
     compute_consumed = scrapy.Field()  # int
-    err = scrapy.Field()  # str
+    #err = scrapy.Field()  # str
     recent_blockhash = scrapy.Field()  # str
 
 
@@ -125,3 +125,44 @@ class TokenAccountItem(scrapy.Item):
     pubkey= scrapy.Field()  # str
     count = scrapy.Field()  # int
     type = scrapy.Field()  # union[NFT/Token]
+
+
+class BlockItem(scrapy.Item):
+    slot = scrapy.Field()  # int
+    block_hash = scrapy.Field()  # str
+    block_height = scrapy.Field()  # int
+    block_time = scrapy.Field()  # int
+    parent_slot = scrapy.Field()  # str
+    previous_blockhash = scrapy.Field()  # str
+    signature = scrapy.Field()  # str
+
+class SOLBalanceChangeItem(scrapy.Item):
+    Address = scrapy.Field()  # str
+    Balance_Before = scrapy.Field()  # int
+    Balance_After = scrapy.Field()  # int
+    Change = scrapy.Field()  # int
+    signature = scrapy.Field()  # str
+
+class TokenBalanceChangeItem(scrapy.Item):
+    Address = scrapy.Field()  # str
+    Owner = scrapy.Field()  # str
+    Balance_Before = scrapy.Field()  # int
+    Balance_After = scrapy.Field()  # int
+    Change = scrapy.Field()  # int
+    Token = scrapy.Field()  # str
+    signature = scrapy.Field()  # str
+
+
+
+class SolanaInstructionItem(scrapy.Item):
+    trace_id = scrapy.Field()  # str
+    data =  scrapy.Field()  # str
+    type =  scrapy.Field()  # str
+    info = scrapy.Field()  # str
+    program =  scrapy.Field()  # str
+    program_id =  scrapy.Field()  # str
+    accounts =  scrapy.Field()  # [str]
+    signature =  scrapy.Field()  # str
+
+class solTransactionItem(scrapy.Item):
+    solTransaction =  scrapy.Field()  # list
